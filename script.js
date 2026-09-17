@@ -32,7 +32,7 @@ document.querySelector('#estimate-form')?.addEventListener('submit', event => {
   event.preventDefault();
   const data = new FormData(event.currentTarget);
   const message = `Estimate request for Esquivel Framing, LLC\n\nName: ${data.get('firstName')} ${data.get('lastName')}\nEmail: ${data.get('email')}\nPhone: ${data.get('phone')}\nProject: ${data.get('projectType')}\nLocation: ${data.get('location')}\nBudget: ${data.get('budget') || 'Not specified'}\n\n${data.get('message')}`;
-  const mailto = `mailto:jaimeframing@gmail.com?subject=${encodeURIComponent('Estimate request — ' + data.get('projectType'))}&body=${encodeURIComponent(message)}`;
+  const mailto = `mailto:info@esquivelbg.com?subject=${encodeURIComponent('Estimate request — ' + data.get('projectType'))}&body=${encodeURIComponent(message)}`;
   const fallback = document.querySelector('#email-fallback');
   fallback.href = mailto;
   fallback.hidden = false;
