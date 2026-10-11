@@ -40,6 +40,15 @@ if(req.method==='POST'&&path==='/api/change-password'){
  await db.query('DELETE FROM ef_sessions WHERE user_id=$1',[user.id]);
  return respond(res,200,{ok:true,message:'Password changed. Sign in again.'},{'Set-Cookie':'ef_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'});
 }
+if(req.method==='POST'&&path==='/api/admin/projects'){
+ const admin=await currentUser(req);if(!admin)return respond(res,401,{error:'Sign in required'});
+ if(admin.role!=='admin'||admin.must_change_password)return respond(res,403,{error:'Administrator access required'});
+ const {name,address}=await body(req);
+ if(typeof name!=='string'||name.trim().length<3||name.length>150||typeof address!=='string'||address.length>300)return respond(res,400,{error:'Invalid project details'});
+ const {randomUUID}=await import('node:crypto');const id=randomUUID();
+ await db.query('INSERT INTO ef_projects(id,name,address) VALUES($1,$2,$3)',[id,name.trim(),address.trim()]);
+ return respond(res,201,{ok:true,id});
+}
 if(req.method==='POST'&&path==='/api/admin/users'){
  const admin=await currentUser(req);if(!admin)return respond(res,401,{error:'Sign in required'});
  if(admin.role!=='admin'||admin.must_change_password)return respond(res,403,{error:'Administrator access required'});
