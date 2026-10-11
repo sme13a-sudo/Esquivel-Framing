@@ -1,0 +1,33 @@
+{
+  "version": 2,
+  "rewrites": [
+    {
+      "source": "/login",
+      "destination": "/api/staff"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/api/staff"
+    },
+    {
+      "source": "/staff",
+      "destination": "/api/staff"
+    },
+    {
+      "source": "/api/login",
+      "destination": "/api/staff"
+    },
+    {
+      "source": "/api/logout",
+      "destination": "/api/staff"
+    },
+    {
+      "source": "/api/change-password",
+      "destination": "/api/staff"
+    },
+    {
+      "source": "/api/admin/:path*",
+      "destination": "/api/staff"
+    }
+  ]
+}
