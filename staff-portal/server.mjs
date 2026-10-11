@@ -20,7 +20,7 @@ const page=`<!doctype html><html lang="en"><meta name="viewport" content="width=
 const attempts=new Map();
 setInterval(()=>{const now=Date.now();for(const [ip,item] of attempts)if(now-item.start>15*60_000)attempts.delete(ip)},15*60_000).unref();
 function loginAllowed(ip){const now=Date.now();const item=attempts.get(ip);if(!item||now-item.start>15*60_000){attempts.set(ip,{start:now,count:1});return true}item.count++;return item.count<=10}
-export async function handler(req,res){try{const path=new URL(req.url,'http://localhost').pathname;
+export async function handler(req,res){try{const requestUrl=new URL(req.url,'http://localhost');const path=requestUrl.pathname==='/api/staff'?(requestUrl.searchParams.get('route')||'/api/staff'):requestUrl.pathname;
 if(req.method==='GET'&&path==='/dashboard'){
  const user=await currentUser(req);
  if(!user){res.writeHead(302,{Location:'/login','Cache-Control':'no-store'});return res.end()}
