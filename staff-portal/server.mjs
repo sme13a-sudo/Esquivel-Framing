@@ -39,6 +39,21 @@ if(req.method==='POST'&&path==='/api/change-password'){
  await db.query('DELETE FROM ef_sessions WHERE user_id=$1',[user.id]);
  return respond(res,200,{ok:true,message:'Password changed. Sign in again.'},{'Set-Cookie':'ef_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'});
 }
+if(req.method==='GET'&&path==='/api/admin/users'){
+ const user=await currentUser(req);if(!user)return respond(res,401,{error:'Sign in required'});
+ if(user.must_change_password||user.role!=='admin')return respond(res,403,{error:'Administrator access required'});
+ const {rows}=await db.query('SELECT id,username,display_name,role,active,must_change_password FROM ef_users ORDER BY display_name');
+ return respond(res,200,{users:rows});
+}
+if(req.method==='POST'&&path==='/api/admin/assign'){
+ const user=await currentUser(req);if(!user)return respond(res,401,{error:'Sign in required'});
+ if(user.must_change_password||user.role!=='admin')return respond(res,403,{error:'Administrator access required'});
+ const {userId,projectId,assign}=await body(req);
+ if(typeof userId!=='string'||typeof projectId!=='string'||typeof assign!=='boolean'||!/^[-0-9a-f]{36}$/i.test(userId)||!/^[-0-9a-f]{36}$/i.test(projectId))return respond(res,400,{error:'Invalid assignment'});
+ if(assign){const result=await db.query('INSERT INTO ef_project_members(project_id,user_id) SELECT p.id,u.id FROM ef_projects p CROSS JOIN ef_users u WHERE p.id=$1 AND u.id=$2 AND u.active=true ON CONFLICT DO NOTHING',[projectId,userId]);if(!result.rowCount)return respond(res,404,{error:'Project or active user not found, or already assigned'})}
+ else await db.query('DELETE FROM ef_project_members WHERE project_id=$1 AND user_id=$2',[projectId,userId]);
+ return respond(res,200,{ok:true});
+}
 if(req.method==='GET'&&path==='/staff'){const user=await currentUser(req);if(!user)return respond(res,401,{error:'Sign in required'});if(user.must_change_password)return respond(res,403,{error:'Password change required before staff access'});const projects=await db.query(user.role==='admin'?'SELECT id,name,address,status FROM ef_projects ORDER BY name':'SELECT p.id,p.name,p.address,p.status FROM ef_projects p JOIN ef_project_members m ON m.project_id=p.id WHERE m.user_id=$1 ORDER BY p.name',user.role==='admin'?[]:[user.id]);return respond(res,200,{user:{username:user.username,display_name:user.display_name,role:user.role},projects:projects.rows})}
 if(req.method==='POST'&&path==='/api/logout'){const token=cookies(req).ef_session;if(token)await db.query('DELETE FROM ef_sessions WHERE token_hash=$1',[sha(token)]);return respond(res,200,{ok:true},{'Set-Cookie':'ef_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'})}
 return respond(res,404,{error:'Not found'});
