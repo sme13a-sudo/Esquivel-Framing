@@ -39,6 +39,18 @@ if(req.method==='POST'&&path==='/api/change-password'){
  await db.query('DELETE FROM ef_sessions WHERE user_id=$1',[user.id]);
  return respond(res,200,{ok:true,message:'Password changed. Sign in again.'},{'Set-Cookie':'ef_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'});
 }
+if(req.method==='POST'&&path==='/api/admin/users'){
+ const admin=await currentUser(req);if(!admin)return respond(res,401,{error:'Sign in required'});
+ if(admin.role!=='admin'||admin.must_change_password)return respond(res,403,{error:'Administrator access required'});
+ const {username,displayName,temporaryPassword}=await body(req);
+ if(typeof username!=='string'||!/^[a-z0-9._-]{3,40}$/.test(username)||typeof displayName!=='string'||displayName.trim().length<2||displayName.length>100||typeof temporaryPassword!=='string'||temporaryPassword.length<12||temporaryPassword.length>128)return respond(res,400,{error:'Valid username, name, and temporary password (12+ characters) required'});
+ try{
+ const {randomUUID}=await import('node:crypto');
+ const id=randomUUID();
+ await db.query('INSERT INTO ef_users(id,username,display_name,password_hash,role,active,must_change_password) VALUES($1,$2,$3,$4,$5,true,true)',[id,username,displayName.trim(),await hashPassword(temporaryPassword),'staff']);
+ return respond(res,201,{ok:true,id});
+ }catch(e){if(e.code==='23505')return respond(res,409,{error:'Username already exists'});throw e}
+}
 if(req.method==='GET'&&path==='/api/admin/users'){
  const user=await currentUser(req);if(!user)return respond(res,401,{error:'Sign in required'});
  if(user.must_change_password||user.role!=='admin')return respond(res,403,{error:'Administrator access required'});
