@@ -46,6 +46,14 @@ if(req.method==='POST'&&path==='/api/change-password'){
  await db.query('DELETE FROM ef_sessions WHERE user_id=$1',[user.id]);
  return respond(res,200,{ok:true,message:'Password changed. Sign in again.'},{'Set-Cookie':'ef_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'});
 }
+if(req.method==='POST'&&path==='/api/admin/disable-user'){
+ const admin=await currentUser(req);if(!admin)return respond(res,401,{error:'Sign in required'});
+ if(admin.role!=='admin'||admin.must_change_password)return respond(res,403,{error:'Administrator access required'});
+ const {userId}=await body(req);
+ if(typeof userId!=='string'||!/^[-0-9a-f]{36}$/i.test(userId)||userId===admin.id)return respond(res,400,{error:'Invalid employee'});
+ const client=await db.connect();
+ try{await client.query('BEGIN');const result=await client.query("UPDATE ef_users SET active=false WHERE id=$1 AND role='staff' AND active=true RETURNING id",[userId]);if(!result.rowCount){await client.query('ROLLBACK');return respond(res,404,{error:'Active employee not found'})}await client.query('DELETE FROM ef_sessions WHERE user_id=$1',[userId]);await client.query('DELETE FROM ef_project_members WHERE user_id=$1',[userId]);await client.query('COMMIT');return respond(res,200,{ok:true});}catch(e){await client.query('ROLLBACK');throw e}finally{client.release()}
+}
 if(req.method==='POST'&&path==='/api/admin/projects'){
  const admin=await currentUser(req);if(!admin)return respond(res,401,{error:'Sign in required'});
  if(admin.role!=='admin'||admin.must_change_password)return respond(res,403,{error:'Administrator access required'});
