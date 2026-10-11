@@ -1,23 +1,24 @@
-# EF Command Center
+# EF Command Center — Local Only
 
-Private operations application specification. This directory is **not** an authenticated application yet.
+This application is designed to run on a designated office computer or private local server. **No Supabase, hosted database, or cloud storage.** The existing static marketing site remains separate.
 
-## Security requirements
-- Dedicated backend and environment for Esquivel Framing; do not reuse the inactive 3454 Client Portal.
-- Server-verified user identity and session; no client-only authentication or passwords in source control.
-- Admin-managed user provisioning and deactivation.
-- Role-based and project-specific authorization on every database query, file operation, and API route.
-- Private project photos/documents with signed short-lived URLs.
-- Immutable actor/time audit events for changes and submitted field reports.
-- Staff project-access requests requiring administrator approval.
+## Local stack
+- Node.js 24+ with built-in `node:sqlite`.
+- SQLite database at `command-center/data/ef-operations.sqlite` (ignored by Git).
+- Private uploaded files in `command-center/data/uploads/` (ignored by Git).
+- Bind to `127.0.0.1` by default. Do not expose to the public internet.
+- Individual staff accounts, server-verified sessions, password hashes, and per-project access checks are required before real operations.
 
-## Modules
-1. Dashboard: assigned projects, pending reports, approvals.
-2. Projects: site information, status, team assignments.
-3. Crew: members, role, project access.
-4. Field Reports: work performed, weather, crew, notes, photo attachments, submitted-by and timestamp.
-5. Documents: drawings, RFIs, photos.
-6. Admin: invitations, permissions, audit events.
+## Planned modules
+Projects, crew assignments, access requests, daily field reports, photographs, documents, admin approvals and audit history.
 
-## Deployment gate
-Do not expose any command-center page or operational data on the static public site. Implement on an authenticated server-backed application and verify row-level access before release.
+## Development status
+Local database initialization and schema included. **The authenticated web interface is not yet implemented.** Never store operational data in the public website or deploy this directory as a public app.
+
+## Initialize
+From a computer with Node.js 24+ installed:
+```bash
+cd command-center
+node init-db.mjs
+```
+The script creates the database in `data/` and prints its path. Back up the entire `data/` folder securely. Do not commit it to Git.
