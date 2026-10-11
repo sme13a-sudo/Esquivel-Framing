@@ -20,7 +20,7 @@ const page=`<!doctype html><html lang="en"><meta name="viewport" content="width=
 const attempts=new Map();
 setInterval(()=>{const now=Date.now();for(const [ip,item] of attempts)if(now-item.start>15*60_000)attempts.delete(ip)},15*60_000).unref();
 function loginAllowed(ip){const now=Date.now();const item=attempts.get(ip);if(!item||now-item.start>15*60_000){attempts.set(ip,{start:now,count:1});return true}item.count++;return item.count<=10}
-const server=http.createServer(async(req,res)=>{try{const path=new URL(req.url,'http://localhost').pathname;
+export async function handler(req,res){try{const path=new URL(req.url,'http://localhost').pathname;
 if(req.method==='GET'&&path==='/dashboard'){
  const user=await currentUser(req);
  if(!user){res.writeHead(302,{Location:'/login','Cache-Control':'no-store'});return res.end()}
@@ -93,6 +93,6 @@ if(req.method==='POST'&&path==='/api/admin/assign'){
 if(req.method==='GET'&&path==='/staff'){const user=await currentUser(req);if(!user)return respond(res,401,{error:'Sign in required'});if(user.must_change_password)return respond(res,403,{error:'Password change required before staff access'});const projects=await db.query(user.role==='admin'?'SELECT id,name,address,status FROM ef_projects ORDER BY name':'SELECT p.id,p.name,p.address,p.status FROM ef_projects p JOIN ef_project_members m ON m.project_id=p.id WHERE m.user_id=$1 ORDER BY p.name',user.role==='admin'?[]:[user.id]);return respond(res,200,{user:{username:user.username,display_name:user.display_name,role:user.role},projects:projects.rows})}
 if(req.method==='POST'&&path==='/api/logout'){const token=cookies(req).ef_session;if(token)await db.query('DELETE FROM ef_sessions WHERE token_hash=$1',[sha(token)]);return respond(res,200,{ok:true},{'Set-Cookie':'ef_session=; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=0'})}
 return respond(res,404,{error:'Not found'});
-}catch(e){console.error(e);respond(res,500,{error:'Server error'})}});
-server.listen(port,host,()=>console.log('EF staff server listening on',host+':'+port));
+}catch(e){console.error(e);respond(res,500,{error:'Server error'})}};
+if(process.env.EF_STANDALONE==='true')http.createServer(handler).listen(port,host,()=>console.log('EF staff server listening on',host+':'+port));
 export {hashPassword};
