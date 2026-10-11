@@ -3,31 +3,43 @@
   "rewrites": [
     {
       "source": "/login",
-      "destination": "/api/staff"
+      "destination": "/api/staff?route=/login"
     },
     {
       "source": "/dashboard",
-      "destination": "/api/staff"
+      "destination": "/api/staff?route=/dashboard"
     },
     {
       "source": "/staff",
-      "destination": "/api/staff"
+      "destination": "/api/staff?route=/staff"
     },
     {
       "source": "/api/login",
-      "destination": "/api/staff"
+      "destination": "/api/staff?route=/api/login"
     },
     {
       "source": "/api/logout",
-      "destination": "/api/staff"
+      "destination": "/api/staff?route=/api/logout"
     },
     {
       "source": "/api/change-password",
-      "destination": "/api/staff"
+      "destination": "/api/staff?route=/api/change-password"
     },
     {
-      "source": "/api/admin/:path*",
-      "destination": "/api/staff"
+      "source": "/api/admin/users",
+      "destination": "/api/staff?route=/api/admin/users"
+    },
+    {
+      "source": "/api/admin/assign",
+      "destination": "/api/staff?route=/api/admin/assign"
+    },
+    {
+      "source": "/api/admin/projects",
+      "destination": "/api/staff?route=/api/admin/projects"
+    },
+    {
+      "source": "/api/admin/disable-user",
+      "destination": "/api/staff?route=/api/admin/disable-user"
     }
   ]
 }
