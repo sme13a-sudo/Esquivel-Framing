@@ -18,6 +18,7 @@ async function currentUser(req){const token=cookies(req).ef_session;if(!token)re
 async function body(req){let s='';for await(const chunk of req){s+=chunk;if(s.length>8192)throw Error('Request too large')}return JSON.parse(s||'{}');}
 const page=`<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>EF Staff Login</title><style>body{font:16px system-ui;background:#111;color:#f5f5f5;min-height:100vh;display:grid;place-items:center}main{width:min(90vw,380px);padding:32px;background:#1e1e1e;border:1px solid #a78b43}h1{letter-spacing:.1em}input,button{box-sizing:border-box;width:100%;padding:14px;margin:9px 0}button{background:#c5a65a;color:#111;border:0;font-weight:800;cursor:pointer}p{color:#d6c28d}</style><main><h1>ESQUIVEL FRAMING</h1><p>SECURE STAFF ACCESS</p><form id="login"><input name="username" placeholder="Username" autocomplete="username" required><input name="password" type="password" placeholder="Password" autocomplete="current-password" required><button>Sign in</button></form><p id="message" role="status"></p></main><script>document.querySelector('form').onsubmit=async e=>{e.preventDefault();const f=new FormData(e.target);const r=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(Object.fromEntries(f))});document.getElementById('message').textContent=r.ok?'Signed in. Your dashboard is being prepared.':'Unable to sign in';if(r.ok)location.href='/dashboard';};</script></html>`;
 const attempts=new Map();
+setInterval(()=>{const now=Date.now();for(const [ip,item] of attempts)if(now-item.start>15*60_000)attempts.delete(ip)},15*60_000).unref();
 function loginAllowed(ip){const now=Date.now();const item=attempts.get(ip);if(!item||now-item.start>15*60_000){attempts.set(ip,{start:now,count:1});return true}item.count++;return item.count<=10}
 const server=http.createServer(async(req,res)=>{try{const path=new URL(req.url,'http://localhost').pathname;
 if(req.method==='GET'&&path==='/dashboard'){
@@ -27,7 +28,12 @@ if(req.method==='GET'&&path==='/dashboard'){
  res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','X-Frame-Options':'DENY','Content-Security-Policy':"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; connect-src 'self'; frame-ancestors 'none'"});
  return res.end(html);
 }
-if(req.method==='POST' && (!req.headers.origin || new URL(req.headers.origin).host !== req.headers.host)) return respond(res,403,{error:'Origin mismatch'});
+if(req.method==='POST'){
+ const origin=req.headers.origin;
+ let valid=false;
+ try{valid=Boolean(origin)&&new URL(origin).host===req.headers.host;}catch{}
+ if(!valid)return respond(res,403,{error:'Origin mismatch'});
+}
 if(req.method==='GET'&&path==='/login'){res.writeHead(200,{'Content-Type':'text/html; charset=utf-8','Cache-Control':'no-store','Content-Security-Policy':"default-src 'self'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; form-action 'self'"});return res.end(page)}
 if(req.method==='POST'&&path==='/api/login'){const ip=req.socket.remoteAddress||'unknown';if(!loginAllowed(ip))return respond(res,429,{error:'Too many login attempts. Try later.'});const {username,password}=await body(req);if(typeof username!=='string'||typeof password!=='string'||username.length>100||password.length>1024)return respond(res,400,{error:'Invalid request'});const {rows}=await db.query('SELECT * FROM ef_users WHERE username=$1 AND active=true',[username]);const user=rows[0];const valid=user&&await verifyPassword(password,user.password_hash);if(!valid)return respond(res,401,{error:'Invalid credentials'});const token=randomBytes(32).toString('hex');await db.query("INSERT INTO ef_sessions(token_hash,user_id,expires_at) VALUES($1,$2,now()+interval '12 hours')",[sha(token),user.id]);return respond(res,200,{ok:true}, {'Set-Cookie':`ef_session=${token}; HttpOnly; Secure; SameSite=Lax; Path=/; Max-Age=43200`})}
 if(req.method==='POST'&&path==='/api/change-password'){
