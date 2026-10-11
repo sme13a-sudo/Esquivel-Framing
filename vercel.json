@@ -2,6 +2,14 @@
   "version": 2,
   "rewrites": [
     {
+      "source": "/setup",
+      "destination": "/api/staff?route=/setup"
+    },
+    {
+      "source": "/api/setup",
+      "destination": "/api/staff?route=/api/setup"
+    },
+    {
       "source": "/login",
       "destination": "/api/staff?route=/login"
     },
